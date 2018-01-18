@@ -1,0 +1,10 @@
+---
+- name: Copy files from local machine to remote machine
+  hosts: all
+  vars:
+  - source_folder: "."
+  tasks:
+  - name: Copy sample file to remote server
+    copy: 
+      src: '{{ source_folder }}'  
+      dest: /tmp

@@ -1,0 +1,10 @@
+---
+- name: Copy files from local machine to remote machine
+  hosts: all
+  become: true
+  tasks:
+  - name: Copy sample file to remote server
+    copy:
+      src: ~/sample.txt
+      dest: /tmp
+

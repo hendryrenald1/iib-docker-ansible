@@ -1,0 +1,7 @@
+---
+- name: Copy files from local machine to remote machine
+  hosts: all
+  tasks:
+  - name: Execute Remote script
+    command: bash -lc  "cd /tmp/ansible-test && mvn install"
+

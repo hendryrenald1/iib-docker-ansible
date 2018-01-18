@@ -1,0 +1,83 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.12.2">
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers/>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.41">
+    <script>node {
+  stage(&apos;SCM&apos;) {
+  git &apos;https://github.com/hendryrenald1/spring-petclinic.git&apos;
+  }
+ 
+  
+
+  
+stage(&apos;SonarQube analysis&apos;) {
+   
+// requires SonarQube Scanner 2.8+
+    def scannerHome = tool &apos;iibscanner&apos;;
+    echo &quot;$scannerHome&quot;
+    withSonarQubeEnv(&apos;iibscanner&apos;) {
+    sh &quot;${scannerHome}/bin/sonar-scanner&quot;
+    //  sh &quot;${sonarHome}/bin/sonar-runner -Dsonar.host.url=http://localhost:9000  -Dsonar.login=d655b124fc53a058f662c5ba1263e5d4d150d133    -Dsonar.projectName=petclinic -Dsonar.projectVersion=1 -Dsonar.projectKey=petclinic -Dsonar.sources=.&quot;
+
+    
+    }
+
+}
+sh &apos;sleep 10&apos; 
+// No need to occupy a node
+stage(&quot;Quality Gate&quot;){
+    timeout(time: 1, unit: &apos;HOURS&apos;) { // Just in case something goes wrong, pipeline will be killed after a timeout
+    def qg = waitForQualityGate() // Reuse taskId previously collected by withSonarQubeEnv
+    if (qg.status != &apos;OK&apos;) {
+    error &quot;Pipeline aborted due to quality gate failure: ${qg.status}&quot;
+    }
+    }
+}
+  stage(&quot;Copy file to remote Server&quot;){
+    echo &quot;${WORKSPACE}&quot;
+   dir (&apos;/var/jenkins_home/ansible-cfg&apos;) {
+        ansiblePlaybook( 
+        playbook: &apos;copy-file.yml&apos;,
+        inventory: &apos;inventory&apos;, 
+      extraVars: [
+            source_folder: &apos;${WORKSPACE}&apos;
+            
+        ]
+        )
+       
+   // ansiblePlaybook inventory: &quot;inventory&quot;, playbook: &quot;copy-file.yml --extra-vars &apos;{&apos;source_folder&apos;:${WORKSPACE}/pom.xml}&apos;&quot;, sudoUser: null
+  }
+  }
+  stage(&quot;Execute build in the remote location&quot;){
+   
+   dir (&apos;/var/jenkins_home/ansible-cfg&apos;) {
+        ansiblePlaybook( 
+        playbook: &apos;execute-build.yml&apos;,
+        inventory: &apos;inventory&apos;, 
+      extraVars: [
+            source_folder: &apos;${WORKSPACE}&apos;
+            
+        ]
+        )
+       
+   // ansiblePlaybook inventory: &quot;inventory&quot;, playbook: &quot;copy-file.yml --extra-vars &apos;{&apos;source_folder&apos;:${WORKSPACE}/pom.xml}&apos;&quot;, sudoUser: null
+  }
+  }
+  
+  
+  
+}
+
+</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

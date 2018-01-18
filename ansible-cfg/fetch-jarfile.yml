@@ -1,0 +1,10 @@
+---
+- name: Fetch generated Jar file from remote server
+  hosts: all
+  tasks:
+  - fetch: 
+      src: /tmp/ansible-test/target/1.jar
+      dest: /tmp
+      flat: yes
+
+
